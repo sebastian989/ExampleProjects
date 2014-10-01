@@ -1,0 +1,152 @@
+package com.ejemplomapwebview;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+ 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.view.View;
+import android.widget.ListView;
+import android.widget.TextView;
+ 
+public class GoogleMapsWebViewActivity extends Activity {
+ 
+    private ListView mListView;
+    private WebView mapView;
+    private ArrayList<String> myAddressList = new ArrayList<String>();
+    private String myAddress;
+    private String centerURL;;
+ 
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+ 
+        
+        mListView.setOnItemClickListener(new OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+ 
+                // When clicked, show a toast with the TextView textLog.v("GoogleMapsWebViewActivity:", "Country: " + ((TextView) view).getText().toString());
+                myAddressList.clear();
+                String thisAddress = "Colombia";
+                myAddressList.add(thisAddress);
+                myAddress = thisAddress;
+                //Set Map
+                mapCustomerAddress();
+            }
+        });
+ 
+        Button submit = (Button) findViewById(R.id.showMap);
+        submit.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+ 
+                Uri uri = Uri.parse("geo:0,0?q=" + "Colombia");
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+ 
+            }
+        });
+ 
+    }
+ 
+    private void mapCustomerAddress(){
+ 
+        boolean internet =  isNetworkAvailable(GoogleMapsWebViewActivity.this);
+        if(internet){
+            Button mapButton = (Button) findViewById(R.id.showMap);
+            mapButton.setEnabled(true);
+ 
+            //getLocation();
+            Log.v("GoogleMapsWebViewActivity:", "Address Size: " + myAddressList.size());
+            Geocoder geoCoder = new Geocoder(GoogleMapsWebViewActivity.this, Locale.getDefault());   
+            List<Address> addresses= null;
+            try {
+                for(int i=0;i<myAddressList.size();i++){
+                    addresses = geoCoder.getFromLocationName(myAddressList.get(i), 5);
+                    if(addresses.size() >0){
+                        myAddress = myAddressList.get(i);
+                        break;
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+ 
+            setupWebView(addresses);
+        }
+        else {
+            Button mapButton = (Button) findViewById(R.id.showMap);
+            mapButton.setEnabled(false);
+ 
+            mapView = (WebView) findViewById(R.id.mapView);
+            String mapNotAvailable =     "<html><head></head><body>" +
+            "<img src='map_not_available.png' width='100%'/>" +
+            "<b>You need internet connectivity for Maps!</b>" +
+            "</body><html>";
+            mapView.loadDataWithBaseURL("file:///android_asset/", mapNotAvailable, "text/html", "utf-8", null);
+ 
+        }
+ 
+    }
+ 
+    /** Sets up the WebView object and loads the URL of the page **/
+    private void setupWebView(List<Address> addresses){
+        Log.v("GoogleMapsWebViewActivity:", "Address Size: " + addresses.size());
+        
+        if (addresses.size() > 0) {
+            Log.v("GoogleMapsWebViewActivity:", "Address Lat: " + addresses.get(0).getLatitude());
+            Log.v("GoogleMapsWebViewActivity:", "Address Long: " + addresses.get(0).getLongitude());
+ 
+            centerURL = "javascript:centerAt(" + 
+            addresses.get(0).getLatitude() + "," + 
+            addresses.get(0).getLongitude()+ ")";
+        }   
+ 
+        mapView = (WebView) findViewById(R.id.mapView);
+        mapView.getSettings().setJavaScriptEnabled(true);
+        //Wait for the page to load then send the location information
+        mapView.setWebViewClient(new WebViewClient(){ 
+            @Override
+            public void onPageFinished(WebView view, String url) 
+            {
+                mapView.loadUrl(centerURL);
+            }
+ 
+        });
+        String MAP_URL = "http://pruebaandroid.tk/Vista/mapa.html";
+        mapView.loadUrl(MAP_URL); 
+    }
+ 
+    private boolean isNetworkAvailable(Context context) {
+        ConnectivityManager connectivity = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivity != null) {
+            NetworkInfo[] info = connectivity.getAllNetworkInfo();
+            if (info != null) {
+                for (int i = 0; i < info.length; i++) {
+                    Log.v("INTERNET:",String.valueOf(i));
+                    if (info[i].getState() == NetworkInfo.State.CONNECTED) {
+                        Log.v("INTERNET:", "connected!");
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+}

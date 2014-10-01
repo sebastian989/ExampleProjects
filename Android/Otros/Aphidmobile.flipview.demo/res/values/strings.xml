@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Aphidmobile.flipview.demo</string>
+    <string name="activity_title">FlipView Demo By Aphid Mobile</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="title_activity_flip_dynamic_adapter">FlipDynamicAdapterActivity</string>
+    <string name="title_activity_flip_complex_layout">FlipComplexLayoutActivity</string>
+
+</resources>

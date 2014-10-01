@@ -1,0 +1,302 @@
+package com.culturapp;
+
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.culturapp.clases.Espectaculo;
+import com.culturapp.clases.Noticia;
+import com.culturapp.recursos.Archivos;
+import com.culturapp.recursos.ConfiguracionGlobal;
+import com.culturapp.recursos.WebService;
+
+import android.net.ConnectivityManager;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Toast;
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+
+public class Menu2 extends Activity {
+
+	private ProgressDialog progressDialog;
+	private Archivos archivos=null;
+	private InputStreamReader archivoEntrada;
+	private OutputStreamWriter archivoSalida;
+	private WebService ws;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.menu);
+
+		this.ws = new WebService();
+		this.archivos = new Archivos();
+		this.progressDialog = new ProgressDialog(Menu2.this);
+		try {
+			this.archivoEntrada = new InputStreamReader(openFileInput("versiones.txt"));
+		} catch (FileNotFoundException e) {
+			try {
+				this.archivoSalida = new OutputStreamWriter(openFileOutput(
+						"versiones.txt", Activity.MODE_PRIVATE));
+				this.archivos.guardar(archivoSalida, "0#0#0");
+				this.archivoEntrada = new InputStreamReader(openFileInput("versiones.txt"));
+			} catch (FileNotFoundException e1) {
+				Toast.makeText(getApplicationContext(), "Error en el sistema",
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+		new Actualizar().execute();
+	}
+
+	private class Actualizar extends AsyncTask<String, Void, Void> {
+
+		private JSONObject json_data;
+		private String versionActual;
+		private String mensaje = "";
+		private JSONArray jsonElementos;
+		private List<Noticia> lstNoticias;
+		private List<Espectaculo> lstEspectaculos;
+		private boolean cambioVersion = false;
+		boolean asy=false;
+		boolean asy2=false;
+		boolean asy3=false;
+
+		protected void onPreExecute() {
+			super.onPreExecute();
+			progressDialog.setTitle("Configurando sistema");
+			progressDialog.setMessage("espere un momento...");
+			progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			progressDialog.setCancelable(false);
+			progressDialog.show();
+		}
+
+		@Override
+		protected Void doInBackground(String... params) {
+			
+			if (hayInternet()) {
+				String texto = archivos.leer(archivoEntrada);
+				texto = texto.replaceAll("[\n\r]", "");
+				String[] versionesLocales = texto.split("#");
+				String[] parametros = { "versiones" };
+				JSONArray jsVersiones = ws.conectar(parametros);
+				try {
+					json_data = jsVersiones.getJSONObject(0);
+					versionActual = json_data.getString("espectaculos") + "#"
+							+ json_data.getString("noticias") + "#"
+							+ json_data.getString("patrocinadores");
+					if (json_data.getInt("espectaculos") > Integer
+							.parseInt(versionesLocales[0])) {
+					    this.cambioVersion=true;
+						Thread thread= new Thread( new Runnable() {
+		                    public void run() {
+		                        try {
+		                        	String[] metodoEspec = { "espectaculos" };
+		    						JSONArray jsEspectaculos = ws.conectar(metodoEspec);
+		    						String jSonEspect = jsEspectaculos.toString();
+		    						archivoSalida = new OutputStreamWriter(openFileOutput(
+		    								"espectaculos.txt", Activity.MODE_PRIVATE));
+		    						archivos.guardar(archivoSalida, jSonEspect);
+		    						mensaje = mensaje + "espectaculos";
+		                    }
+		                        catch(Exception e){}
+		                        cargarEspectaculos();
+		                        asy=true;
+		                    }
+		                });
+						thread.start();
+					}
+					else{
+						cargarEspectaculos();
+						asy=true;
+					}
+					if (json_data.getInt("noticias") > Integer
+							.parseInt(versionesLocales[1])) {
+						this.cambioVersion=true;
+						Thread thread2 = new Thread( new Runnable() {
+		                    public void run() {
+		                        try {
+		    						String[] metodoNotic = { "noticias" };
+		    						JSONArray jsNoticias = ws.conectar(metodoNotic);
+		    						String jSonNotic = jsNoticias.toString();
+		    						archivoSalida = new OutputStreamWriter(openFileOutput(
+		    								"noticias.txt", Activity.MODE_PRIVATE));
+		    						archivos.guardar(archivoSalida, jSonNotic);
+		    						mensaje = mensaje + " noticias";
+		                    }
+		                        catch(Exception e){}
+		                        cargarNoticias();
+		                        asy2=true;
+		                    }
+		                });
+						thread2.start();
+					}
+					else{
+						cargarNoticias();
+						asy2=true;
+					}
+					if (json_data.getInt("patrocinadores") > Integer
+							.parseInt(versionesLocales[2])) {
+						this.cambioVersion=true;
+						Thread thread3 = new Thread( new Runnable() {
+		                    public void run() {
+		                        try {
+		    						String[] metodoPatroc = { "patrocinadores" };
+		    						JSONArray jsPatrocinadores = ws.conectar(metodoPatroc);
+		    						String jSonPatroc = jsPatrocinadores.toString();
+		    						archivoSalida = new OutputStreamWriter(openFileOutput(
+		    								"patrocinadores.txt", Activity.MODE_PRIVATE));
+		    						archivos.guardar(archivoSalida, jSonPatroc);
+		    						mensaje = mensaje + " patrocinadores";
+		                    }
+		                        catch(Exception e){}
+		                        asy3=true;
+		                    }
+		                });
+						thread3.start();
+					}
+					else{
+						asy3=true;
+					}
+					if (this.cambioVersion) {
+						archivoSalida = new OutputStreamWriter(openFileOutput(
+								"versiones.txt", Activity.MODE_PRIVATE));
+						archivos.guardar(archivoSalida, versionActual);
+					}
+				} catch (Exception e) {
+				}
+			}
+			while(asy==false || asy2==false || asy3==false){
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			return null;
+		}
+
+		protected void onPostExecute(Void result) {
+			super.onPostExecute(result);
+			
+			progressDialog.dismiss();
+			
+		}
+		
+		private void cargarNoticias(){
+			this.lstNoticias = new ArrayList<Noticia>();
+			String noticias = this.cargarDatos("noticias.txt");
+			try {
+				this.jsonElementos = new JSONArray(noticias);
+				for (int i = 0; i < this.jsonElementos.length(); i++) {
+					this.json_data = this.jsonElementos.getJSONObject(i);
+					this.lstNoticias.add(new Noticia(json_data.getString("titulo"),
+							json_data.getString("imagen"),
+							json_data.getString("descripcion"))
+					);
+				}
+				ConfiguracionGlobal.getSingletonObject().setLstNoticias(this.lstNoticias);
+			} catch (JSONException e) {
+				Toast.makeText(getApplicationContext(), "Error en el sistema", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		public void cargarEspectaculos(){
+			this.lstEspectaculos = new ArrayList<Espectaculo>();
+			String espectaculos = this.cargarDatos("espectaculos.txt");
+			try {
+				this.jsonElementos = new JSONArray(espectaculos);
+				for (int i = 0; i < this.jsonElementos.length(); i++) {
+					this.json_data = this.jsonElementos.getJSONObject(i);
+					this.lstEspectaculos.add(new Espectaculo(json_data.getInt("idobra"),
+							json_data.getString("titulo"),json_data.getString("categoria"),
+							json_data.getString("pais"),json_data.getString("duracion"),
+							json_data.getString("sinopsis"),json_data.getString("abstract"),
+							json_data.getDouble("calificacion"),json_data.getString("lugar"),
+							json_data.getString("ciudad"),json_data.getString("direccion"),
+							json_data.getDouble("latitud"),json_data.getDouble("longitud"),
+							json_data.getString("dia"),json_data.getString("fecha"),
+							json_data.getString("hora"),json_data.getString("costo"),
+							json_data.getString("tipo"),json_data.getString("imagen"))
+					);
+				}
+				ConfiguracionGlobal.getSingletonObject().setLstEspectaculos(this.lstEspectaculos);
+			} catch (JSONException e) {
+				Toast.makeText(getApplicationContext(), "Error en el sistema", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		private String cargarDatos(String nombreArchivo) {
+			String noticias=null;
+			InputStream archivoNuevo;
+			try {
+				archivoEntrada = new InputStreamReader(openFileInput(nombreArchivo));
+			} catch (FileNotFoundException e) {
+				if(nombreArchivo.toUpperCase().equals("ESPECTACULOS.TXT")){
+					archivoNuevo = getResources().openRawResource(R.raw.json_espectaculos);
+				}
+				else if(nombreArchivo.toUpperCase().equals("NOTICIAS.TXT")){
+					archivoNuevo = getResources().openRawResource(R.raw.json_noticias);
+				}
+				else{
+					archivoNuevo = getResources().openRawResource(R.raw.json_patrocinadores);
+				}
+				try {
+					archivoEntrada = new InputStreamReader(archivoNuevo , "UTF-8" );
+					noticias = archivos.leer(archivoEntrada);
+					archivoSalida = new OutputStreamWriter(openFileOutput(nombreArchivo, Activity.MODE_PRIVATE));
+					archivos.guardar(archivoSalida, noticias);
+				} catch (UnsupportedEncodingException e1) {
+					Toast.makeText(getApplicationContext(), "Error en el sistema", Toast.LENGTH_SHORT).show();
+				} catch (FileNotFoundException e1) {
+					Toast.makeText(getApplicationContext(), "Error en el sistema", Toast.LENGTH_SHORT).show();
+				}
+			}
+			if(noticias == null){
+				noticias = archivos.leer(archivoEntrada);
+			}
+			return noticias;
+		}
+		
+		private boolean hayInternet() {
+			ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+			if (cm.getActiveNetworkInfo() != null
+					&& cm.getActiveNetworkInfo().isAvailable()
+					&& cm.getActiveNetworkInfo().isConnected()) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	
+	public void noticias(View view) {
+		Intent intent = new Intent(getApplicationContext(), Noticias.class);
+		startActivity(intent);
+	}
+	
+	public void espectaculos(View view){
+		Intent intent = new Intent(getApplicationContext(), Espectaculos.class);
+		startActivity(intent);
+	}
+	
+	@Override
+    protected void onDestroy() {
+        super.onDestroy();
+        System.runFinalizersOnExit(true);
+        System.exit(0);
+        this.finish();
+    }
+}

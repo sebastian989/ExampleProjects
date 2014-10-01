@@ -1,0 +1,89 @@
+package com.ejemplomapasfinal;
+
+
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.app.Activity;
+import android.view.Menu;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends Activity {
+	private WebView mapView;
+	 LocationListener locationListener;
+	 Location location;
+	 String centerURL;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		
+		double latitudetwo = 5.063115897077374;
+        double longitudetwo = -75.4949140548706;
+        
+        
+        centerURL = "javascript:centerAt(" + 
+                latitudetwo + "," + longitudetwo+")";
+		    
+		
+        mapView = (WebView) findViewById(R.id.mapView);
+        mapView.getSettings().setJavaScriptEnabled(true);
+        mapView.setWebViewClient(new WebViewClient(){ 
+            @Override
+            public void onPageFinished(WebView view, String url) 
+            {
+                mapView.loadUrl(centerURL);
+            }
+ 
+        });
+		String MAP_URL = "http://pruebaandroid.tk/Vista/mapa.html";
+        mapView.loadUrl(MAP_URL);
+        }
+	
+	public void ruta(){
+		double latitude=0;
+		double longitude=0;
+		LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+	      Criteria criteria = new Criteria();
+
+      // Getting the name of the best provider
+      String provider = locationManager.getBestProvider(criteria, true);
+
+      // Getting Current Location
+      location = locationManager.getLastKnownLocation(provider);
+      
+      if(location!=null){
+      // Getting latitude of the current location
+      latitude = location.getLatitude();
+
+      // Getting longitude of the current location
+      longitude = location.getLongitude();
+      }
+      
+      centerURL = "javascript:ruta(" + 
+              latitude + "," + longitude+")";
+      
+      mapView.loadUrl(centerURL);
+      
+      mapView.setWebViewClient(new WebViewClient(){ 
+          @Override
+          public void onPageFinished(WebView view, String url) 
+          {
+              mapView.loadUrl(centerURL);
+          }
+
+      });
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+}

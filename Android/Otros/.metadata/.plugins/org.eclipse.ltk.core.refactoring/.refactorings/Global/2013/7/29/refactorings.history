@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;TableAdapter.java&apos; to &apos;CulturApp/src/com.culturapp.adaptadores&apos;&#x0D;&#x0A;- Original project: &apos;Global&apos;&#x0D;&#x0A;- Destination element: &apos;CulturApp/src/com.culturapp.adaptadores&apos;&#x0D;&#x0A;- Original element: &apos;com.global.TableAdapter.java&apos;" description="Copy compilation unit" destination="=CulturApp/src&lt;com.culturapp.adaptadores" element1="/src&lt;com.global{TableAdapter.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1374181640127" units="1" version="1.0"/>
+</session>
